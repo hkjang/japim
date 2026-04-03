@@ -74,6 +74,8 @@ Split the resulting image archive for GitHub Releases:
 powershell -ExecutionPolicy Bypass -File scripts\export_release_parts.ps1 -Image japim-paddleocr:0.1.0
 ```
 
+The export script uses a chunk size below GitHub's 2 GB per-asset limit so each release part can be uploaded without manual resizing.
+
 Merge split release parts and load the image on an offline server:
 
 ```powershell

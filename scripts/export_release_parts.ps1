@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Image,
     [string]$OutputDir = "var\release-assets",
-    [int64]$ChunkSizeBytes = 2147483648
+    [int64]$ChunkSizeBytes = 2000000000
 )
 
 $ErrorActionPreference = "Stop"
