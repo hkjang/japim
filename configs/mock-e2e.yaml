@@ -1,0 +1,44 @@
+job_name_prefix: "japim-mock"
+output_dir: "output"
+temp_dir: "temp"
+
+dpi: 300
+ocr_backend: "mock"
+mock_ocr_dir: "samples/mock_ocr"
+ocr_lang: "korean"
+use_angle_cls: false
+confidence_threshold: 0.45
+auxiliary_confidence_threshold: 0.25
+
+enable_grayscale: true
+enable_binarize: false
+enable_denoise: true
+enable_deskew: false
+min_short_edge: 1200
+line_merge_tolerance_px: 24.0
+token_gap_multiplier: 0.65
+
+mask_padding: 6
+mask_style: "box"
+mask_color: [0, 0, 0]
+blur_radius: 10
+pixelate_block_size: 12
+
+stop_on_error: false
+save_debug_image: true
+save_ocr_json: true
+save_preprocessed_image: false
+
+enabled_rules:
+  - RULE-05
+  - RULE-10
+
+paddle:
+  use_gpu: false
+  device: "cpu"
+  show_log: false
+
+audit:
+  write_csv: true
+  write_jsonl: true
+  write_summary: true

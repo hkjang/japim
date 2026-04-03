@@ -1,0 +1,22 @@
+[Unit]
+Description=JAPIM GPU API (Docker)
+After=network-online.target docker.service
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=IMAGE=japim-paddleocr:3.4.0-gpu
+Environment=CONTAINER_NAME=japim
+Environment=HOST_PORT=8000
+Environment=OUTPUT_DIR=/srv/japim/output
+Environment=TEMP_DIR=/srv/japim/temp
+ExecStartPre=/usr/bin/mkdir -p ${OUTPUT_DIR} ${TEMP_DIR}
+ExecStartPre=-/usr/bin/docker rm -f ${CONTAINER_NAME}
+ExecStart=/usr/bin/docker run --rm --name ${CONTAINER_NAME} --gpus all -p ${HOST_PORT}:8000 -v ${OUTPUT_DIR}:/app/output -v ${TEMP_DIR}:/app/temp ${IMAGE}
+ExecStop=/usr/bin/docker stop ${CONTAINER_NAME}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+.git
+.pytest_cache
+__pycache__
+build
+output
+temp
+var
+tests
+samples
+models/paddleocr
+*.pyc

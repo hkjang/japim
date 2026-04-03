@@ -1,0 +1,21 @@
+[Unit]
+Description=JAPIM GPU API (Podman)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=IMAGE=japim-paddleocr:3.4.0-gpu
+Environment=CONTAINER_NAME=japim
+Environment=HOST_PORT=8000
+Environment=OUTPUT_DIR=/srv/japim/output
+Environment=TEMP_DIR=/srv/japim/temp
+ExecStartPre=/usr/bin/mkdir -p ${OUTPUT_DIR} ${TEMP_DIR}
+ExecStartPre=-/usr/bin/podman rm -f ${CONTAINER_NAME}
+ExecStart=/usr/bin/podman run --rm --replace --name ${CONTAINER_NAME} --device nvidia.com/gpu=all -p ${HOST_PORT}:8000 -v ${OUTPUT_DIR}:/app/output:Z -v ${TEMP_DIR}:/app/temp:Z ${IMAGE}
+ExecStop=/usr/bin/podman stop ${CONTAINER_NAME}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

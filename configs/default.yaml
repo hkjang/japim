@@ -1,0 +1,58 @@
+job_name_prefix: "japim"
+input_dir: "input"
+output_dir: "output"
+temp_dir: "temp"
+
+dpi: 300
+ocr_backend: "paddle"
+ocr_lang: "korean"
+use_angle_cls: true
+confidence_threshold: 0.45
+auxiliary_confidence_threshold: 0.25
+mock_ocr_dir: null
+
+enable_grayscale: true
+enable_binarize: false
+enable_denoise: true
+enable_deskew: true
+min_short_edge: 1800
+line_merge_tolerance_px: 24.0
+token_gap_multiplier: 0.65
+
+mask_padding: 6
+mask_style: "box"
+mask_color: [0, 0, 0]
+blur_radius: 10
+pixelate_block_size: 12
+
+stop_on_error: false
+save_debug_image: true
+save_ocr_json: true
+save_preprocessed_image: false
+
+enabled_rules:
+  - RULE-01
+  - RULE-02
+  - RULE-03
+  - RULE-04
+  - RULE-05
+  - RULE-06
+  - RULE-07
+  - RULE-08
+  - RULE-09
+  - RULE-10
+  - RULE-11
+  - RULE-12
+
+paddle:
+  use_gpu: false
+  device: "cpu"
+  det_model_dir: "models/paddleocr/det"
+  rec_model_dir: "models/paddleocr/rec"
+  cls_model_dir: "models/paddleocr/cls"
+  show_log: false
+
+audit:
+  write_csv: true
+  write_jsonl: true
+  write_summary: true
