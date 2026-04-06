@@ -42,7 +42,7 @@ The image uses a multi-stage build:
 - the final runtime stage installs `paddlepaddle-gpu==3.2.0` from the official CUDA 11.8 package index
 - the fetched models are copied into `/app/models/paddleocr`, so the final image is self-contained for offline deployment
 
-The container starts with `/app/configs/docker-gpu.yaml` by default, so it will use GPU OCR on a CUDA-enabled host. If you want to force CPU mode for troubleshooting, override the config:
+The container starts with `/app/configs/docker-gpu.yaml` by default, so it will use GPU OCR on a CUDA-enabled host. If you want to force CPU mode for troubleshooting on the same GPU-capable host, override the config:
 
 ```powershell
 docker run --rm -p 8000:8000 -e JAPIM_CONFIG=/app/configs/default.yaml japim-paddleocr:0.1.0
@@ -54,7 +54,28 @@ For normal GPU deployment with NVIDIA Container Toolkit:
 docker run --rm --gpus all -p 8000:8000 japim-paddleocr:0.1.0
 ```
 
-If the installed official PaddlePaddle GPU wheel does not support the host GPU architecture yet, the OCR engine automatically falls back to CPU instead of failing the whole job. This keeps the same GPU-ready image deployable on mixed server fleets.
+If the installed official PaddlePaddle GPU wheel can initialize on the host but GPU execution later fails because of issues such as unsupported architecture or OOM, the OCR engine falls back to CPU instead of failing the whole job. This image is still a GPU deployment image and expects NVIDIA driver libraries to be visible inside the container.
+
+The default GPU config is memory-optimized:
+
+- `PP-OCRv5_mobile_det`
+- `korean_PP-OCRv5_mobile_rec`
+- `PP-LCNet_x0_25_textline_ori`
+- `FLAGS_allocator_strategy=auto_growth`
+- `FLAGS_fraction_of_gpu_memory_to_use=0.1`
+
+If your GPU has enough VRAM and you want a heavier profile, use:
+
+```powershell
+docker run --rm --gpus all -p 8000:8000 -e JAPIM_CONFIG=/app/configs/docker-gpu-highmem.yaml japim-paddleocr:0.1.0
+```
+
+The Linux helper scripts also accept `CONFIG_PATH` so you can switch profiles without editing the image:
+
+```bash
+CONFIG_PATH=/app/configs/docker-gpu-highmem.yaml ./scripts/run_ubuntu_gpu.sh
+CONFIG_PATH=/app/configs/docker-gpu-highmem.yaml ./scripts/run_rhel9_gpu.sh
+```
 
 If you also want a local copy of the official models in the repo for inspection, you can fetch them separately:
 

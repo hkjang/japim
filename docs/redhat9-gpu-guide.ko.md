@@ -114,6 +114,12 @@ chmod +x scripts/run_rhel9_gpu.sh
 ./scripts/run_rhel9_gpu.sh
 ```
 
+고VRAM 서버에서 더 무거운 프로파일로 바꾸고 싶다면:
+
+```bash
+CONFIG_PATH=/app/configs/docker-gpu-highmem.yaml ./scripts/run_rhel9_gpu.sh
+```
+
 출력 디렉터리와 임시 디렉터리 바인드 마운트:
 
 ```bash
@@ -151,7 +157,50 @@ curl http://localhost:8000/health
 
 - `http://서버IP:8000/`
 
-## 10. GPU 호환성 주의
+## 10. GPU OOM / GPU 사용률 0% 점검
+
+다음 명령을 같이 봅니다.
+
+```bash
+watch -n 1 nvidia-smi
+podman logs -f japim
+```
+
+중요:
+
+- `GPU-Util` 0%는 추론이 너무 짧게 끝나서 샘플링에 안 잡힌 경우도 많습니다.
+- 로그에 GPU 초기화 실패 또는 CPU 폴백 경고가 있는지 같이 확인해야 합니다.
+
+현재 기본 GPU 프로파일은 OOM 완화를 위해 다음처럼 낮춰져 있습니다.
+
+- 모바일 detection 모델 사용
+- recognition batch size 1
+- orientation batch size 1
+- `FLAGS_allocator_strategy=auto_growth`
+- `FLAGS_fraction_of_gpu_memory_to_use=0.1`
+- 기본 `docker-gpu.yaml`은 낮은 DPI와 작은 전처리 크기 사용
+
+로그에 아래 문구가 보이면 GPU 대신 CPU로 처리된 것입니다.
+
+- `GPU OCR backend initialization failed, falling back to CPU`
+
+VRAM이 충분한 서버라면 더 무거운 설정으로 바꿀 수 있습니다.
+
+```bash
+podman run --rm \
+  --device nvidia.com/gpu=all \
+  -p 8000:8000 \
+  -e JAPIM_CONFIG=/app/configs/docker-gpu-highmem.yaml \
+  japim-paddleocr:3.4.0-gpu
+```
+
+같은 설정은 실행 스크립트에서도 바로 줄 수 있습니다.
+
+```bash
+CONFIG_PATH=/app/configs/docker-gpu-highmem.yaml ./scripts/run_rhel9_gpu.sh
+```
+
+## 11. GPU 호환성 주의
 
 현재 이미지 내부 GPU 패키지는:
 
@@ -162,12 +211,13 @@ Paddle 공식 Linux PIP 문서는 `3.2.0` GPU 설치 시 `CUDA 11.8`, `12.6`, `1
 
 현재 앱 동작:
 
-- GPU 초기화 성공: GPU OCR 사용
-- GPU 초기화 실패: 경고 로그 후 CPU 자동 폴백
+- GPU 초기화 및 실행 성공: GPU OCR 사용
+- GPU 실행 중 런타임 오류: 경고 로그 후 CPU 자동 폴백
+- 이 이미지는 NVIDIA 드라이버 라이브러리가 없는 순수 CPU 호스트용 이미지는 아님
 
 즉 RHEL 9 서버에서도 서비스는 기동되지만, GPU 아키텍처가 공식 휠과 맞지 않으면 CPU로 내려갈 수 있습니다.
 
-## 11. SELinux 문제 해결
+## 12. SELinux 문제 해결
 
 증상:
 
@@ -199,7 +249,7 @@ podman run --rm \
 DISABLE_SELINUX_LABEL=true ./scripts/run_rhel9_gpu.sh
 ```
 
-## 12. 권장 운영 절차
+## 13. 권장 운영 절차
 
 1. `nvidia-smi`로 드라이버와 GPU 인식 확인
 2. `nvidia-ctk cdi generate` 및 `nvidia-ctk cdi list` 확인
@@ -208,7 +258,7 @@ DISABLE_SELINUX_LABEL=true ./scripts/run_rhel9_gpu.sh
 5. `/health` 확인
 6. 웹 테스트 페이지에서 PDF 업로드/다운로드 확인
 
-## 13. 참고 문서
+## 14. 참고 문서
 
 - NVIDIA Container Toolkit install guide: <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/1.17.8/install-guide.html>
 - NVIDIA CDI support: <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html>
@@ -219,7 +269,7 @@ Ubuntu 서버에 대해서는 별도 가이드를 참고합니다.
 
 - [docs/ubuntu-gpu-guide.ko.md](C:\Users\USER\projects\japim\docs\ubuntu-gpu-guide.ko.md)
 
-## 14. systemd 자동기동
+## 15. systemd 자동기동
 
 템플릿 파일:
 

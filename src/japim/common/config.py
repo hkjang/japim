@@ -13,6 +13,15 @@ class PaddleConfig(BaseModel):
     det_model_dir: Path | None = None
     rec_model_dir: Path | None = None
     cls_model_dir: Path | None = None
+    text_detection_model_name: str | None = None
+    text_recognition_model_name: str | None = None
+    textline_orientation_model_name: str | None = None
+    text_det_limit_side_len: int | None = None
+    text_det_limit_type: Literal["min", "max"] | None = None
+    textline_orientation_batch_size: int | None = None
+    text_recognition_batch_size: int | None = None
+    gpu_allocator_strategy: str | None = "auto_growth"
+    fraction_of_gpu_memory_to_use: float | None = 0.1
     show_log: bool = False
 
 

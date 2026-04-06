@@ -47,6 +47,15 @@ class PIIMaskingPipeline:
             det_model_dir=config.paddle.det_model_dir,
             rec_model_dir=config.paddle.rec_model_dir,
             cls_model_dir=config.paddle.cls_model_dir,
+            text_detection_model_name=config.paddle.text_detection_model_name,
+            text_recognition_model_name=config.paddle.text_recognition_model_name,
+            textline_orientation_model_name=config.paddle.textline_orientation_model_name,
+            text_det_limit_side_len=config.paddle.text_det_limit_side_len,
+            text_det_limit_type=config.paddle.text_det_limit_type,
+            textline_orientation_batch_size=config.paddle.textline_orientation_batch_size,
+            text_recognition_batch_size=config.paddle.text_recognition_batch_size,
+            gpu_allocator_strategy=config.paddle.gpu_allocator_strategy,
+            fraction_of_gpu_memory_to_use=config.paddle.fraction_of_gpu_memory_to_use,
             show_log=config.paddle.show_log,
         )
         self.line_builder = LineBuilder(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,15 @@ class OCREngine:
         det_model_dir: Path | None = None,
         rec_model_dir: Path | None = None,
         cls_model_dir: Path | None = None,
+        text_detection_model_name: str | None = None,
+        text_recognition_model_name: str | None = None,
+        textline_orientation_model_name: str | None = None,
+        text_det_limit_side_len: int | None = None,
+        text_det_limit_type: str | None = None,
+        textline_orientation_batch_size: int | None = None,
+        text_recognition_batch_size: int | None = None,
+        gpu_allocator_strategy: str | None = None,
+        fraction_of_gpu_memory_to_use: float | None = None,
         show_log: bool = False,
     ) -> None:
         self.backend = backend
@@ -39,12 +49,24 @@ class OCREngine:
         self.det_model_dir = det_model_dir
         self.rec_model_dir = rec_model_dir
         self.cls_model_dir = cls_model_dir
+        self.text_detection_model_name = text_detection_model_name
+        self.text_recognition_model_name = text_recognition_model_name
+        self.textline_orientation_model_name = textline_orientation_model_name
+        self.text_det_limit_side_len = text_det_limit_side_len
+        self.text_det_limit_type = text_det_limit_type
+        self.textline_orientation_batch_size = textline_orientation_batch_size
+        self.text_recognition_batch_size = text_recognition_batch_size
+        self.gpu_allocator_strategy = gpu_allocator_strategy
+        self.fraction_of_gpu_memory_to_use = fraction_of_gpu_memory_to_use
         self.show_log = show_log
         self._ocr = None
+        self._logged_runtime_summary = False
 
     def _get_engine(self):
         if self._ocr is not None:
             return self._ocr
+
+        self._configure_runtime_env()
 
         try:
             from paddleocr import PaddleOCR
@@ -53,6 +75,7 @@ class OCREngine:
 
         parameters = set(inspect.signature(PaddleOCR).parameters)
         runtime_device = self.device if self.use_gpu else "cpu"
+        self._log_runtime_summary(runtime_device)
 
         if "use_doc_orientation_classify" in parameters:
             kwargs: dict[str, Any] = {
@@ -64,21 +87,35 @@ class OCREngine:
             }
             if "ocr_version" in parameters and not any((self.det_model_dir, self.rec_model_dir, self.cls_model_dir)):
                 kwargs["ocr_version"] = "PP-OCRv5"
+            if self.text_detection_model_name and "text_detection_model_name" in parameters:
+                kwargs["text_detection_model_name"] = self.text_detection_model_name
             if self.det_model_dir:
                 model_name = self._read_model_name(self.det_model_dir)
                 if model_name and "text_detection_model_name" in parameters:
                     kwargs["text_detection_model_name"] = model_name
                 kwargs["text_detection_model_dir"] = str(self.det_model_dir)
+            if self.text_recognition_model_name and "text_recognition_model_name" in parameters:
+                kwargs["text_recognition_model_name"] = self.text_recognition_model_name
             if self.rec_model_dir:
                 model_name = self._read_model_name(self.rec_model_dir)
                 if model_name and "text_recognition_model_name" in parameters:
                     kwargs["text_recognition_model_name"] = model_name
                 kwargs["text_recognition_model_dir"] = str(self.rec_model_dir)
+            if self.textline_orientation_model_name and "textline_orientation_model_name" in parameters:
+                kwargs["textline_orientation_model_name"] = self.textline_orientation_model_name
             if self.cls_model_dir:
                 model_name = self._read_model_name(self.cls_model_dir)
                 if model_name and "textline_orientation_model_name" in parameters:
                     kwargs["textline_orientation_model_name"] = model_name
                 kwargs["textline_orientation_model_dir"] = str(self.cls_model_dir)
+            if self.text_det_limit_side_len is not None and "text_det_limit_side_len" in parameters:
+                kwargs["text_det_limit_side_len"] = self.text_det_limit_side_len
+            if self.text_det_limit_type and "text_det_limit_type" in parameters:
+                kwargs["text_det_limit_type"] = self.text_det_limit_type
+            if self.textline_orientation_batch_size is not None and "textline_orientation_batch_size" in parameters:
+                kwargs["textline_orientation_batch_size"] = self.textline_orientation_batch_size
+            if self.text_recognition_batch_size is not None and "text_recognition_batch_size" in parameters:
+                kwargs["text_recognition_batch_size"] = self.text_recognition_batch_size
             if "show_log" in parameters:
                 kwargs["show_log"] = self.show_log
         else:
@@ -98,6 +135,43 @@ class OCREngine:
 
         self._ocr = PaddleOCR(**kwargs)
         return self._ocr
+
+    def _configure_runtime_env(self) -> None:
+        if not self.use_gpu:
+            return
+
+        if self.gpu_allocator_strategy:
+            os.environ.setdefault("FLAGS_allocator_strategy", self.gpu_allocator_strategy)
+        if self.fraction_of_gpu_memory_to_use is not None:
+            os.environ.setdefault("FLAGS_fraction_of_gpu_memory_to_use", str(self.fraction_of_gpu_memory_to_use))
+
+    def _log_runtime_summary(self, runtime_device: str) -> None:
+        if self._logged_runtime_summary:
+            return
+
+        context = {
+            "requested_device": runtime_device,
+            "use_gpu": self.use_gpu,
+            "det_model_name": self.text_detection_model_name,
+            "rec_model_name": self.text_recognition_model_name,
+            "cls_model_name": self.textline_orientation_model_name,
+            "allocator_strategy": os.environ.get("FLAGS_allocator_strategy"),
+            "fraction_of_gpu_memory_to_use": os.environ.get("FLAGS_fraction_of_gpu_memory_to_use"),
+            "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+            "nvidia_visible_devices": os.environ.get("NVIDIA_VISIBLE_DEVICES"),
+        }
+
+        try:
+            import paddle
+
+            context["compiled_with_cuda"] = paddle.device.is_compiled_with_cuda()
+            if hasattr(paddle.device, "cuda"):
+                context["gpu_device_count"] = paddle.device.cuda.device_count()
+        except Exception as exc:  # pragma: no cover
+            context["paddle_runtime_probe_error"] = str(exc)
+
+        logger.info("Initializing OCR runtime: %s", context)
+        self._logged_runtime_summary = True
 
     def recognize(self, image_path: str | Path, page_no: int) -> list[OCRToken]:
         if self.backend == "mock":
@@ -131,6 +205,9 @@ class OCREngine:
             "cuda driver version is insufficient",
             "cannot find cuda",
             "not compiled with cuda",
+            "out of memory",
+            "cublas_status_alloc_failed",
+            "resourceexhaustederror",
         )
         return any(marker in message for marker in markers)
 
@@ -139,6 +216,7 @@ class OCREngine:
         self.use_gpu = False
         self.device = "cpu"
         self._ocr = None
+        self._logged_runtime_summary = False
         return self._recognize_with_backend(image_path, page_no)
 
     def _read_model_name(self, model_dir: Path | None) -> str | None:

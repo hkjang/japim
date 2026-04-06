@@ -40,6 +40,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PADDLE_OCR_BASE_DIR=/app/models \
     PADDLE_PDX_MODEL_SOURCE=BOS \
     PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
+    FLAGS_allocator_strategy=auto_growth \
+    FLAGS_fraction_of_gpu_memory_to_use=0.1 \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/cuda/targets/x86_64-linux/lib
 
 RUN apt-get update && apt-get install -y \

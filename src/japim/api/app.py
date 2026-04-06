@@ -20,6 +20,8 @@ class JobStatusResponse(BaseModel):
     status: Literal["queued", "running", "success", "fail"]
     input_filename: str
     message: str | None = None
+    page_successes: int | None = None
+    page_failures: int | None = None
     output_dir: str | None = None
     masked_pdf_url: str | None = None
     detections_csv_url: str | None = None
@@ -34,6 +36,8 @@ class JobState:
     upload_path: Path
     status: str = "queued"
     message: str | None = None
+    page_successes: int | None = None
+    page_failures: int | None = None
     output_dir: Path | None = None
     masked_pdf_path: Path | None = None
     extra_files: dict[str, Path] = field(default_factory=dict)
@@ -62,11 +66,21 @@ class JobManager:
         with self._lock:
             self._jobs[job_id].status = "running"
 
-    def mark_success(self, job_id: str, output_dir: Path, masked_pdf: Path) -> None:
+    def mark_completed(
+        self,
+        job_id: str,
+        output_dir: Path,
+        masked_pdf: Path,
+        page_successes: int,
+        page_failures: int,
+    ) -> None:
         logs_dir = output_dir / "logs"
         with self._lock:
             job = self._jobs[job_id]
-            job.status = "success"
+            job.status = "fail" if page_failures else "success"
+            job.message = f"{page_failures} page(s) failed during OCR or masking" if page_failures else None
+            job.page_successes = page_successes
+            job.page_failures = page_failures
             job.output_dir = output_dir
             job.masked_pdf_path = masked_pdf
             job.extra_files = {
@@ -161,7 +175,13 @@ def _run_job(manager: JobManager, config: AppConfig, job_id: str) -> None:
     try:
         pipeline = PIIMaskingPipeline(config=config)
         result = pipeline.run(state.upload_path)
-        manager.mark_success(job_id, result.output_dir, result.masked_pdf_path)
+        manager.mark_completed(
+            job_id,
+            result.output_dir,
+            result.masked_pdf_path,
+            page_successes=result.success_pages,
+            page_failures=result.failed_pages,
+        )
     except Exception as exc:  # pragma: no cover
         manager.mark_fail(job_id, str(exc))
 
@@ -173,6 +193,8 @@ def _build_status_response(state: JobState) -> JobStatusResponse:
         status=state.status,
         input_filename=state.input_filename,
         message=state.message,
+        page_successes=state.page_successes,
+        page_failures=state.page_failures,
         output_dir=str(state.output_dir) if state.output_dir else None,
         masked_pdf_url=f"{base}/masked-pdf" if state.masked_pdf_path else None,
         detections_csv_url=f"{base}/detections-csv" if state.extra_files.get("detections_csv") else None,

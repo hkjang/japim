@@ -3,10 +3,10 @@ input_dir: "input"
 output_dir: "output"
 temp_dir: "temp"
 
-dpi: 220
+dpi: 300
 ocr_backend: "paddle"
 ocr_lang: "korean"
-use_angle_cls: false
+use_angle_cls: true
 confidence_threshold: 0.45
 auxiliary_confidence_threshold: 0.25
 mock_ocr_dir: null
@@ -15,7 +15,7 @@ enable_grayscale: true
 enable_binarize: false
 enable_denoise: true
 enable_deskew: true
-min_short_edge: 1400
+min_short_edge: 1800
 line_merge_tolerance_px: 24.0
 token_gap_multiplier: 0.65
 
@@ -26,8 +26,8 @@ blur_radius: 10
 pixelate_block_size: 12
 
 stop_on_error: false
-save_debug_image: false
-save_ocr_json: false
+save_debug_image: true
+save_ocr_json: true
 save_preprocessed_image: false
 
 enabled_rules:
@@ -53,7 +53,7 @@ paddle:
   text_detection_model_name: "PP-OCRv5_mobile_det"
   text_recognition_model_name: "korean_PP-OCRv5_mobile_rec"
   textline_orientation_model_name: "PP-LCNet_x0_25_textline_ori"
-  text_det_limit_side_len: 960
+  text_det_limit_side_len: 1216
   text_det_limit_type: "max"
   textline_orientation_batch_size: 1
   text_recognition_batch_size: 1

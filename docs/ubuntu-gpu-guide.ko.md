@@ -110,6 +110,12 @@ chmod +x scripts/run_ubuntu_gpu.sh
 ./scripts/run_ubuntu_gpu.sh
 ```
 
+고VRAM 서버에서 더 무거운 프로파일로 바꾸고 싶다면:
+
+```bash
+CONFIG_PATH=/app/configs/docker-gpu-highmem.yaml ./scripts/run_ubuntu_gpu.sh
+```
+
 볼륨 마운트 예시:
 
 ```bash
@@ -122,7 +128,7 @@ docker run --rm --gpus all \
   japim-paddleocr:3.4.0-gpu
 ```
 
-CPU 강제 실행:
+같은 GPU 서버에서 CPU 강제 실행:
 
 ```bash
 docker run --rm -p 8000:8000 \
@@ -130,7 +136,7 @@ docker run --rm -p 8000:8000 \
   japim-paddleocr:3.4.0-gpu
 ```
 
-CPU 강제 스크립트 실행:
+같은 GPU 서버에서 CPU 강제 스크립트 실행:
 
 ```bash
 FORCE_CPU=true ./scripts/run_ubuntu_gpu.sh
@@ -148,7 +154,49 @@ curl http://localhost:8000/health
 
 - `http://서버IP:8000/`
 
-## 10. Ubuntu 운영 주의사항
+## 10. GPU OOM / GPU 사용률 0% 점검
+
+다음 명령을 같이 봅니다.
+
+```bash
+watch -n 1 nvidia-smi
+docker logs -f japim
+```
+
+중요:
+
+- `nvidia-smi`의 `GPU-Util`이 0%라고 해서 반드시 CPU만 쓰는 것은 아닙니다.
+- OCR 추론은 짧은 burst 형태라 샘플링 타이밍에 따라 0%로 보일 수 있습니다.
+- 대신 `Memory-Usage`와 컨테이너 로그를 같이 봐야 합니다.
+
+현재 기본 GPU 프로파일은 OOM 완화를 위해 다음처럼 낮춰져 있습니다.
+
+- 모바일 detection 모델 사용
+- recognition batch size 1
+- orientation batch size 1
+- `FLAGS_allocator_strategy=auto_growth`
+- `FLAGS_fraction_of_gpu_memory_to_use=0.1`
+- 기본 `docker-gpu.yaml`은 DPI와 전처리 크기를 낮춘 안전 프로파일
+
+로그에서 아래 문구가 보이면 GPU 대신 CPU로 내려간 것입니다.
+
+- `GPU OCR backend initialization failed, falling back to CPU`
+
+VRAM이 충분한 서버라면 더 무거운 설정으로 바꿀 수 있습니다.
+
+```bash
+docker run --rm --gpus all -p 8000:8000 \
+  -e JAPIM_CONFIG=/app/configs/docker-gpu-highmem.yaml \
+  japim-paddleocr:3.4.0-gpu
+```
+
+같은 설정은 실행 스크립트에서도 바로 줄 수 있습니다.
+
+```bash
+CONFIG_PATH=/app/configs/docker-gpu-highmem.yaml ./scripts/run_ubuntu_gpu.sh
+```
+
+## 11. Ubuntu 운영 주의사항
 
 Docker 공식 문서는 Ubuntu에서 포트를 외부로 노출할 경우 `ufw` 규칙을 우회할 수 있다고 안내합니다.
 
@@ -159,7 +207,7 @@ Docker 공식 문서는 Ubuntu에서 포트를 외부로 노출할 경우 `ufw` 
 3. 가능하면 reverse proxy 뒤에 배치
 4. `DOCKER-USER` 체인 기준 필터링 정책 검토
 
-## 11. GPU 호환성
+## 12. GPU 호환성
 
 현재 이미지 내부 GPU 패키지:
 
@@ -168,18 +216,19 @@ Docker 공식 문서는 Ubuntu에서 포트를 외부로 노출할 경우 `ufw` 
 
 앱 동작:
 
-- GPU 초기화 성공: GPU OCR 사용
-- GPU 초기화 실패: CPU 자동 폴백
+- GPU 초기화 및 실행 성공: GPU OCR 사용
+- GPU 실행 중 런타임 오류: CPU 자동 폴백
+- 이 이미지는 NVIDIA 드라이버 라이브러리가 없는 순수 CPU 호스트용 이미지는 아님
 
 즉 Ubuntu 서버에서도 공식 휠이 해당 GPU 아키텍처를 지원하지 않으면 서비스는 살아 있지만 성능은 CPU 수준으로 내려갑니다.
 
-## 12. 참고 문서
+## 13. 참고 문서
 
 - Docker Engine on Ubuntu: <https://docs.docker.com/engine/install/ubuntu/>
 - NVIDIA Container Toolkit install guide: <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>
 - Paddle Linux pip install guide: <https://www.paddlepaddle.org.cn/documentation/docs/install/pip/linux-pip_en.html>
 
-## 13. systemd 자동기동
+## 14. systemd 자동기동
 
 템플릿 파일:
 

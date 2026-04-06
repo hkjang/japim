@@ -8,6 +8,7 @@ OUTPUT_DIR="${OUTPUT_DIR:-/srv/japim/output}"
 TEMP_DIR="${TEMP_DIR:-/srv/japim/temp}"
 FORCE_CPU="${FORCE_CPU:-false}"
 DISABLE_SELINUX_LABEL="${DISABLE_SELINUX_LABEL:-false}"
+CONFIG_PATH="${CONFIG_PATH:-}"
 
 mkdir -p "${OUTPUT_DIR}" "${TEMP_DIR}"
 
@@ -30,6 +31,8 @@ fi
 
 if [[ "${FORCE_CPU}" == "true" ]]; then
   ARGS+=(-e "JAPIM_CONFIG=/app/configs/default.yaml")
+elif [[ -n "${CONFIG_PATH}" ]]; then
+  ARGS+=(-e "JAPIM_CONFIG=${CONFIG_PATH}")
 else
   ARGS+=(--device nvidia.com/gpu=all)
 fi

@@ -52,7 +52,7 @@ powershell -ExecutionPolicy Bypass -File scripts\write_release_manifest.ps1 `
 5. 이미지 태그: `japim-paddleocr:3.4.0-gpu`
 6. SHA256 값
 7. 오프라인 서버 반입 절차 문서 위치
-8. GPU 미지원 아키텍처에서는 CPU 폴백이 동작한다는 점
+8. GPU 런타임 오류 시 CPU 폴백이 가능하다는 점
 
 권장 릴리즈 본문 예시:
 
@@ -70,7 +70,7 @@ Assets:
 
 Notes:
 - Default container config is /app/configs/docker-gpu.yaml
-- If the official GPU wheel does not support the host GPU architecture, OCR falls back to CPU automatically
+- If GPU execution fails after runtime initialization, OCR falls back to CPU automatically
 ```
 
 ## 4. 오프라인 서버 반입
@@ -145,7 +145,7 @@ docker run --rm --gpus all \
   japim-paddleocr:3.4.0-gpu
 ```
 
-CPU 강제 실행:
+같은 GPU 서버에서 CPU 강제 실행:
 
 ```bash
 docker run --rm -p 8000:8000 \
@@ -177,9 +177,9 @@ curl http://localhost:8000/health
 
 현재 구현된 동작은 다음과 같습니다.
 
-- GPU 초기화 성공: 그대로 GPU OCR 사용
-- GPU 초기화 실패: 로그 경고 후 CPU 자동 폴백
-- 따라서 서비스는 기동되지만 성능은 CPU 수준으로 내려갈 수 있음
+- GPU 초기화 및 실행 성공: 그대로 GPU OCR 사용
+- GPU 실행 중 런타임 오류 발생: 로그 경고 후 CPU 자동 폴백
+- 다만 이 이미지는 GPU 배포형이라 NVIDIA 드라이버 라이브러리가 전혀 없는 순수 CPU 호스트용 이미지는 아님
 
 ## 10. 권장 운영 점검
 

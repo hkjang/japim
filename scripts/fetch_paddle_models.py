@@ -15,6 +15,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lang", default="korean", help="PaddleOCR language code")
     parser.add_argument("--use-angle-cls", action="store_true", default=True, help="Download the text line orientation model too")
     parser.add_argument("--cache-dir", default="var/paddle-cache", help="Base directory used for PaddleOCR model downloads")
+    parser.add_argument("--text-detection-model-name", default="PP-OCRv5_mobile_det", help="Official PaddleOCR detection model name")
+    parser.add_argument("--text-recognition-model-name", default=None, help="Official PaddleOCR recognition model name")
+    parser.add_argument("--textline-orientation-model-name", default="PP-LCNet_x0_25_textline_ori", help="Official PaddleOCR text line orientation model name")
     return parser.parse_args()
 
 
@@ -32,14 +35,27 @@ def main() -> None:
 
     from paddleocr import PaddleOCR
 
+    recognition_model_name = args.text_recognition_model_name or default_recognition_model_name(args.lang)
     ocr = PaddleOCR(
         lang=args.lang,
         use_doc_orientation_classify=False,
         use_doc_unwarping=False,
         use_textline_orientation=args.use_angle_cls,
+        text_detection_model_name=args.text_detection_model_name,
+        text_recognition_model_name=recognition_model_name,
+        textline_orientation_model_name=args.textline_orientation_model_name if args.use_angle_cls else None,
     )
 
-    model_dirs = discover_model_dirs(ocr, cache_dir=cache_dir, lang=args.lang, include_textline=args.use_angle_cls)
+    model_dirs = discover_model_dirs(
+        ocr,
+        cache_dir=cache_dir,
+        include_textline=args.use_angle_cls,
+        model_names={
+            "det": args.text_detection_model_name,
+            "rec": recognition_model_name,
+            "cls": args.textline_orientation_model_name,
+        },
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for key, source_dir in model_dirs.items():
@@ -50,14 +66,14 @@ def main() -> None:
         print(f"{key}={target_dir}")
 
 
-def discover_model_dirs(ocr, cache_dir: Path, lang: str, include_textline: bool) -> dict[str, Path]:
+def discover_model_dirs(ocr, cache_dir: Path, include_textline: bool, model_names: dict[str, str]) -> dict[str, Path]:
     exported = export_model_dirs(ocr)
     search_roots = build_search_roots(cache_dir)
 
     hints = {
-        "det": ("server_det", "_det"),
-        "rec": (f"{lang.lower()}_", "_rec"),
-        "cls": ("textline_ori", "_ori"),
+        "det": (model_names["det"].lower(), "_det"),
+        "rec": (model_names["rec"].lower(), "_rec"),
+        "cls": (model_names["cls"].lower(), "_ori"),
     }
 
     resolved: dict[str, Path] = {}
@@ -151,6 +167,10 @@ def search_model_dir(search_roots: list[Path], hints: tuple[str, ...]) -> Path |
 
 def has_model_files(path: Path) -> bool:
     return (path / "inference.pdiparams").exists() and (path / "inference.yml").exists()
+
+
+def default_recognition_model_name(lang: str) -> str:
+    return f"{lang.lower()}_PP-OCRv5_mobile_rec"
 
 
 if __name__ == "__main__":

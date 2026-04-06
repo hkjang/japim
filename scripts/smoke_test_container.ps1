@@ -5,6 +5,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$InputPdf,
     [string]$OutputDir = "var\smoke",
+    [string]$ConfigPath = "",
     [switch]$UseGpu = $true
 )
 
@@ -67,7 +68,10 @@ $dockerArgs = @("run", "-d", "--rm", "--name", $ContainerName, "-p", "${HostPort
 if ($UseGpu) {
     $dockerArgs += @("--gpus", "all")
 }
-else {
+if ($ConfigPath) {
+    $dockerArgs += @("-e", "JAPIM_CONFIG=$ConfigPath")
+}
+elseif (-not $UseGpu) {
     $dockerArgs += @("-e", "JAPIM_CONFIG=/app/configs/default.yaml")
 }
 $dockerArgs += $Image
