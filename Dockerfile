@@ -1,4 +1,4 @@
-ARG CUDA_IMAGE=nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+ARG CUDA_IMAGE=nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04
 ARG PYTHON_IMAGE=python:3.11-slim
 
 FROM ${PYTHON_IMAGE} AS model-fetch
@@ -57,14 +57,14 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN ln -sf /usr/lib/x86_64-linux-gnu/libcudnn.so.8 /usr/lib/x86_64-linux-gnu/libcudnn.so && \
-    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.11.0 /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so && \
-    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so.11 /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so && \
-    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcublasLt.so.11 /usr/local/cuda/targets/x86_64-linux/lib/libcublasLt.so && \
+RUN ln -sf /usr/lib/x86_64-linux-gnu/libcudnn.so.9 /usr/lib/x86_64-linux-gnu/libcudnn.so && \
+    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.12 /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so && \
+    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so.12 /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so && \
+    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcublasLt.so.12 /usr/local/cuda/targets/x86_64-linux/lib/libcublasLt.so && \
     ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcurand.so.10 /usr/local/cuda/targets/x86_64-linux/lib/libcurand.so && \
     ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcusolver.so.11 /usr/local/cuda/targets/x86_64-linux/lib/libcusolver.so && \
-    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcusparse.so.11 /usr/local/cuda/targets/x86_64-linux/lib/libcusparse.so && \
-    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcufft.so.10 /usr/local/cuda/targets/x86_64-linux/lib/libcufft.so && \
+    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcusparse.so.12 /usr/local/cuda/targets/x86_64-linux/lib/libcusparse.so && \
+    ln -sf /usr/local/cuda/targets/x86_64-linux/lib/libcufft.so.11 /usr/local/cuda/targets/x86_64-linux/lib/libcufft.so && \
     ldconfig
 
 WORKDIR /app
@@ -80,7 +80,7 @@ COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY --from=model-fetch /opt/paddle-models/paddleocr /app/models/paddleocr
 
 ARG PADDLE_PACKAGE="paddlepaddle-gpu==3.2.0"
-ARG PADDLE_PACKAGE_INDEX="https://www.paddlepaddle.org.cn/packages/stable/cu118/"
+ARG PADDLE_PACKAGE_INDEX="https://www.paddlepaddle.org.cn/packages/stable/cu126/"
 RUN python3 -m pip install --upgrade pip setuptools wheel && \
     python3 -m pip install "${PADDLE_PACKAGE}" -i "${PADDLE_PACKAGE_INDEX}" && \
     python3 -m pip install ".[ocr]"

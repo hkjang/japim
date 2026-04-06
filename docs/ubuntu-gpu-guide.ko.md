@@ -79,7 +79,7 @@ sudo systemctl restart docker
 ## 6. GPU 노출 확인
 
 ```bash
-docker run --rm --gpus all nvidia/cuda:11.8.0-runtime-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04 nvidia-smi
 ```
 
 이 명령이 성공하면 컨테이너 안에서 GPU 접근이 되는 상태입니다.
@@ -212,7 +212,7 @@ Docker 공식 문서는 Ubuntu에서 포트를 외부로 노출할 경우 `ufw` 
 현재 이미지 내부 GPU 패키지:
 
 - `paddlepaddle-gpu==3.2.0`
-- 공식 `CUDA 11.8` 인덱스 기준
+- 공식 `CUDA 12.6` 인덱스 기준
 
 앱 동작:
 

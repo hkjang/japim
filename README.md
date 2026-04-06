@@ -39,7 +39,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build_offline_image.ps1 -Tag ja
 The image uses a multi-stage build:
 
 - a CPU fetch stage downloads the latest official PaddleOCR model bundle
-- the final runtime stage installs `paddlepaddle-gpu==3.2.0` from the official CUDA 11.8 package index
+- the final runtime stage installs `paddlepaddle-gpu==3.2.0` from the official CUDA 12.6 package index
 - the fetched models are copied into `/app/models/paddleocr`, so the final image is self-contained for offline deployment
 
 The container starts with `/app/configs/docker-gpu.yaml` by default, so it will use GPU OCR on a CUDA-enabled host. If you want to force CPU mode for troubleshooting on the same GPU-capable host, override the config:

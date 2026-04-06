@@ -89,6 +89,7 @@ chmod +x scripts/import_release_parts.sh
 cat japim-paddleocr_3.4.0-gpu.tar.gz.part001 \
     japim-paddleocr_3.4.0-gpu.tar.gz.part002 \
     japim-paddleocr_3.4.0-gpu.tar.gz.part003 \
+    japim-paddleocr_3.4.0-gpu.tar.gz.part004 \
   > japim-paddleocr_3.4.0-gpu.tar.gz
 
 sha256sum japim-paddleocr_3.4.0-gpu.tar.gz
@@ -205,7 +206,7 @@ CONFIG_PATH=/app/configs/docker-gpu-highmem.yaml ./scripts/run_rhel9_gpu.sh
 현재 이미지 내부 GPU 패키지는:
 
 - `paddlepaddle-gpu==3.2.0`
-- 공식 `cu118` 인덱스 기준
+- 공식 `cu126` 인덱스 기준
 
 Paddle 공식 Linux PIP 문서는 `3.2.0` GPU 설치 시 `CUDA 11.8`, `12.6`, `12.9` 계열 인덱스를 안내합니다. 다만 실제 GPU 아키텍처 지원 여부는 공식 휠 빌드 범위에 따라 달라질 수 있습니다.
 
